@@ -4,7 +4,7 @@ MANDIR=$(DESTDIR)/usr/share/man/man1
 all: gzip
 
 gzip: gzip.c
-	$(CC) -o $@ $< $(shell pkg-config --cflags --libs libbsd-overlay liblzma zlib) -lbz2 -DNO_COMPRESS_SUPPORT -DNO_LZ_SUPPORT $(CFLAGS)
+	$(CC) -o $@ $< $(shell pkg-config --cflags --libs libbsd-overlay liblzma zlib) -lbz2 $(CFLAGS)
 
 install: all
 	install -d $(BINDIR)

@@ -59,6 +59,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#define     nitems(x)       (sizeof((x)) / sizeof((x)[0]))
+
 #define LZ_STATES		12
 
 #define LITERAL_CONTEXT_BITS	3

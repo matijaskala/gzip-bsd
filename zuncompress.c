@@ -240,7 +240,9 @@ zread(void *cookie, char *rbp, int num)
 	if (fread(header + i, 1, sizeof(header) - i, zs->zs_fp) !=
 		  sizeof(header) - i ||
 	    memcmp(header, magic_header, sizeof(magic_header)) != 0) {
+#ifdef EFTYPE
 		errno = EFTYPE;
+#endif
 		return (-1);
 	}
 	total_compressed_bytes = 0;
@@ -249,7 +251,9 @@ zread(void *cookie, char *rbp, int num)
 	zs->zs_maxbits &= BIT_MASK;
 	zs->zs_maxmaxcode = 1L << zs->zs_maxbits;
 	if (zs->zs_maxbits > BITS || zs->zs_maxbits < 12) {
+#ifdef EFTYPE
 		errno = EFTYPE;
+#endif
 		return (-1);
 	}
 	/* As above, initialize the first 256 entries in the table. */
@@ -281,7 +285,9 @@ zread(void *cookie, char *rbp, int num)
 			if (zs->u.r.zs_code > zs->zs_free_ent ||
 			    zs->u.r.zs_oldcode == -1) {
 				/* Bad stream. */
+#ifdef EFTYPE
 				errno = EFTYPE;
+#endif
 				return (-1);
 			}
 			*zs->u.r.zs_stackp++ = zs->u.r.zs_finchar;
