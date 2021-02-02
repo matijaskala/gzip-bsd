@@ -1,6 +1,5 @@
-.\" $NetBSD: zgrep.1,v 1.3 2008/05/08 15:35:23 wiz Exp $
-.\"
-.\" Copyright (c) 2003 Thomas Klausner.
+.\" Copyright (c) 2018 Baptiste Daroussin <bapt@FreeBSD.org>
+.\" All rights reserved.
 .\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
@@ -11,84 +10,105 @@
 .\"    notice, this list of conditions and the following disclaimer in the
 .\"    documentation and/or other materials provided with the distribution.
 .\"
-.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-.\" IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-.\" OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-.\" IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-.\" INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-.\" NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-.\" DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-.\" THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-.\" (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-.\" THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.Dd December 28, 2003
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\" $FreeBSD$
+.\"
+.Dd July 20, 2020
 .Dt ZGREP 1
 .Os
 .Sh NAME
 .Nm zgrep ,
 .Nm zegrep ,
-.Nm zfgrep
-.Nd print lines matching a pattern in gzip-compressed files
+.Nm zfgrep ,
+.Nm bzgrep ,
+.Nm bzegrep ,
+.Nm bzfgrep ,
+.Nm lzgrep ,
+.Nm lzegrep ,
+.Nm lzfgrep ,
+.Nm xzgrep ,
+.Nm xzegrep ,
+.Nm xzfgrep ,
+.Nm zstdgrep ,
+.Nm zstdegrep ,
+.Nm zstdfgrep
+.Nd grep compressed files
 .Sh SYNOPSIS
 .Nm
-.Op Ar grep-flags
-.Op Fl -
-.Ar pattern
-.Op Ar files ...
-.Pp
+.Oo Ar flags Oc Ar files
 .Nm zegrep
-.Op Ar grep-flags
-.Op Fl -
-.Ar pattern
-.Op Ar
-.Pp
+.Oo Ar flags Oc Ar files
 .Nm zfgrep
-.Op Ar grep-flags
-.Op Fl -
-.Ar pattern
-.Op Ar
+.Oo Ar flags Oc Ar files
+.Pp
+.Nm bzgrep
+.Oo Ar flags Oc Ar files
+.Nm bzegrep
+.Oo Ar flags Oc Ar files
+.Nm bzfgrep
+.Oo Ar flags Oc Ar files
+.Pp
+.Nm lzgrep
+.Oo Ar flags Oc Ar files
+.Nm lzegrep
+.Oo Ar flags Oc Ar files
+.Nm lzfgrep
+.Oo Ar flags Oc Ar files
+.Pp
+.Nm xzgrep
+.Oo Ar flags Oc Ar files
+.Nm xzegrep
+.Oo Ar flags Oc Ar files
+.Nm xzfgrep
+.Oo Ar flags Oc Ar files
+.Pp
+.Nm zstdgrep
+.Oo Ar flags Oc Ar files
+.Nm zstdegrep
+.Oo Ar flags Oc Ar files
+.Nm zstdfgrep
+.Oo Ar flags Oc Ar files
 .Sh DESCRIPTION
-.Nm
-runs
+Allow
 .Xr grep 1
-on
-.Ar files
-or stdin, if no
-.Ar files
-argument is given, after decompressing them with
-.Xr zcat 1 .
-.Pp
-The
-.Ar grep-flags
-and
-.Ar pattern
-arguments are passed on to
-.Xr grep 1 .
-If an
-.Fl e
-flag is found in the
-.Ar grep-flags ,
-.Nm
-will not look for a
-.Ar pattern
-argument.
-.Pp
-.Nm zegrep
-calls
-.Xr egrep 1 ,
-while
-.Nm zfgrep
-calls
-.Xr fgrep 1 .
-.Sh EXIT STATUS
-In case of missing arguments or missing pattern,
-1 will be returned, otherwise 0.
+to read compressed files.
 .Sh SEE ALSO
-.Xr egrep 1 ,
-.Xr fgrep 1 ,
+.Xr bzip2 1 ,
 .Xr grep 1 ,
 .Xr gzip 1 ,
-.Xr zcat 1
+.Xr xz 1 ,
+.Xr zstd 1
 .Sh AUTHORS
-.An Thomas Klausner
-.Aq wiz@NetBSD.org
+This version of the
+.Nm
+utility was written by
+.An Thomas Klausner Aq Mt wiz@NetBSD.org .
+.Sh BUGS
+.Xr zgrep 1
+does not handle flags that take arguments if there is no whitespace
+between the flag and the argument, for example:
+.Pp
+.Dl "zgrep -enfs /etc/rpc"
+.Pp
+When more than one
+.Fl e
+flag is used matching
+should occur for any of the patterns (similar to multiple patterns
+supplied in a file with the
+.Fl f
+flag).
+.Xr zgrep 1
+only matches the last
+.Fl e
+pattern.

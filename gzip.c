@@ -31,6 +31,11 @@
  */
 
 #include <sys/cdefs.h>
+#ifndef lint
+__COPYRIGHT("@(#) Copyright (c) 1997, 1998, 2003, 2004, 2006, 2008,\
+ 2009, 2010, 2011, 2015, 2017 Matthew R. Green.  All rights reserved.");
+__FBSDID("$FreeBSD$");
+#endif /* not lint */
 
 /*
  * gzip.c -- GPL free gzip using zlib.
@@ -44,7 +49,7 @@
  *	- make bzip2/compress -v/-t/-l support work as well as possible
  */
 
-#include <endian.h>
+#include <sys/endian.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -223,13 +228,13 @@ static	int	exit_value = 0;		/* exit value */
 
 static	const char *infile;		/* name of file coming in */
 
-static	void	maybe_err(const char *fmt, ...);
+static	void	maybe_err(const char *fmt, ...) __printflike(1, 2) __dead2;
 #if !defined(NO_BZIP2_SUPPORT) || !defined(NO_PACK_SUPPORT) ||	\
     !defined(NO_XZ_SUPPORT)
-static	void	maybe_errx(const char *fmt, ...);
+static	void	maybe_errx(const char *fmt, ...) __printflike(1, 2) __dead2;
 #endif
-static	void	maybe_warn(const char *fmt, ...);
-static	void	maybe_warnx(const char *fmt, ...);
+static	void	maybe_warn(const char *fmt, ...) __printflike(1, 2);
+static	void	maybe_warnx(const char *fmt, ...) __printflike(1, 2);
 static	enum filetype file_gettype(u_char *);
 #ifdef SMALL
 #define gz_compress(if, of, sz, fn, tm) gz_compress(if, of, sz)
@@ -244,8 +249,8 @@ static	void	handle_stdin(void);
 static	void	handle_stdout(void);
 static	void	print_ratio(off_t, off_t, FILE *);
 static	void	print_list(int fd, off_t, const char *, time_t);
-static	void	usage(void);
-static	void	display_version(void);
+static	void	usage(void) __dead2;
+static	void	display_version(void) __dead2;
 #ifndef SMALL
 static	void	display_license(void);
 #endif
@@ -1029,10 +1034,7 @@ gz_uncompress(int in, int out, char *pre, size_t prelen, off_t *gsizep,
 					maybe_warnx("truncated input");
 					goto stop_and_fail;
 				}
-				origcrc = ((unsigned)z.next_in[0] & 0xff) |
-					((unsigned)z.next_in[1] & 0xff) << 8 |
-					((unsigned)z.next_in[2] & 0xff) << 16 |
-					((unsigned)z.next_in[3] & 0xff) << 24;
+				origcrc = le32dec(&z.next_in[0]);
 				if (origcrc != crc) {
 					maybe_warnx("invalid compressed"
 					     " data--crc error");
@@ -1060,10 +1062,7 @@ gz_uncompress(int in, int out, char *pre, size_t prelen, off_t *gsizep,
 					maybe_warnx("truncated input");
 					goto stop_and_fail;
 				}
-				origlen = ((unsigned)z.next_in[0] & 0xff) |
-					((unsigned)z.next_in[1] & 0xff) << 8 |
-					((unsigned)z.next_in[2] & 0xff) << 16 |
-					((unsigned)z.next_in[3] & 0xff) << 24;
+				origlen = le32dec(&z.next_in[0]);
 
 				if (origlen != out_sub_tot) {
 					maybe_warnx("invalid compressed"
@@ -1433,7 +1432,7 @@ file_uncompress(char *file, char *outfile, size_t outsize)
 	struct stat isb, osb;
 	off_t size;
 	ssize_t rbytes;
-	unsigned char header1[4];
+	unsigned char fourbytes[4];
 	enum filetype method;
 	int fd, ofd, zfd = -1;
 	int error;
@@ -1467,8 +1466,8 @@ file_uncompress(char *file, char *outfile, size_t outsize)
 		goto lose;
 	}
 
-	rbytes = read(fd, header1, sizeof header1);
-	if (rbytes != sizeof header1) {
+	rbytes = read(fd, fourbytes, sizeof fourbytes);
+	if (rbytes != sizeof fourbytes) {
 		/* we don't want to fail here. */
 #ifndef SMALL
 		if (fflag)
@@ -1482,7 +1481,7 @@ file_uncompress(char *file, char *outfile, size_t outsize)
 	}
 	infile_newdata(rbytes);
 
-	method = file_gettype(header1);
+	method = file_gettype(fourbytes);
 #ifndef SMALL
 	if (fflag == 0 && method == FT_UNKNOWN) {
 		maybe_warnx("%s: not in gzip format", file);
@@ -1504,9 +1503,9 @@ file_uncompress(char *file, char *outfile, size_t outsize)
 			goto lose;
 		}
 		infile_newdata(rv);
-		timestamp = ts[3] << 24 | ts[2] << 16 | ts[1] << 8 | ts[0];
+		timestamp = le32dec(&ts[0]);
 
-		if (header1[3] & ORIG_NAME) {
+		if (fourbytes[3] & ORIG_NAME) {
 			rbytes = pread(fd, name, sizeof(name) - 1, GZIP_ORIGNAME);
 			if (rbytes < 0) {
 				maybe_warn("can't read %s", file);
@@ -1808,7 +1807,7 @@ static void
 handle_stdin(void)
 {
 	struct stat isb;
-	unsigned char header1[4];
+	unsigned char fourbytes[4];
 	size_t in_size;
 	off_t usize, gsize;
 	enum filetype method;
@@ -1839,16 +1838,16 @@ handle_stdin(void)
 		goto out;
 	}
 
-	bytes_read = read_retry(STDIN_FILENO, header1, sizeof header1);
+	bytes_read = read_retry(STDIN_FILENO, fourbytes, sizeof fourbytes);
 	if (bytes_read == -1) {
 		maybe_warn("can't read stdin");
 		goto out;
-	} else if (bytes_read != sizeof(header1)) {
+	} else if (bytes_read != sizeof(fourbytes)) {
 		maybe_warnx("(stdin): unexpected end of file");
 		goto out;
 	}
 
-	method = file_gettype(header1);
+	method = file_gettype(fourbytes);
 	switch (method) {
 	default:
 #ifndef SMALL
@@ -1856,17 +1855,17 @@ handle_stdin(void)
 			maybe_warnx("unknown compression format");
 			goto out;
 		}
-		usize = cat_fd(header1, sizeof header1, &gsize, STDIN_FILENO);
+		usize = cat_fd(fourbytes, sizeof fourbytes, &gsize, STDIN_FILENO);
 		break;
 #endif
 	case FT_GZIP:
 		usize = gz_uncompress(STDIN_FILENO, STDOUT_FILENO,
-			      (char *)header1, sizeof header1, &gsize, "(stdin)");
+			      (char *)fourbytes, sizeof fourbytes, &gsize, "(stdin)");
 		break;
 #ifndef NO_BZIP2_SUPPORT
 	case FT_BZIP2:
 		usize = unbzip2(STDIN_FILENO, STDOUT_FILENO,
-				(char *)header1, sizeof header1, &gsize);
+				(char *)fourbytes, sizeof fourbytes, &gsize);
 		break;
 #endif
 #ifndef NO_COMPRESS_SUPPORT
@@ -1876,27 +1875,27 @@ handle_stdin(void)
 			goto out;
 		}
 
-		usize = zuncompress(in, stdout, (char *)header1,
-		    sizeof header1, &gsize);
+		usize = zuncompress(in, stdout, (char *)fourbytes,
+		    sizeof fourbytes, &gsize);
 		fclose(in);
 		break;
 #endif
 #ifndef NO_PACK_SUPPORT
 	case FT_PACK:
 		usize = unpack(STDIN_FILENO, STDOUT_FILENO,
-			       (char *)header1, sizeof header1, &gsize);
+			       (char *)fourbytes, sizeof fourbytes, &gsize);
 		break;
 #endif
 #ifndef NO_XZ_SUPPORT
 	case FT_XZ:
 		usize = unxz(STDIN_FILENO, STDOUT_FILENO,
-			     (char *)header1, sizeof header1, &gsize);
+			     (char *)fourbytes, sizeof fourbytes, &gsize);
 		break;
 #endif
 #ifndef NO_LZ_SUPPORT
 	case FT_LZ:
 		usize = unlz(STDIN_FILENO, STDOUT_FILENO,
-			     (char *)header1, sizeof header1, &gsize);
+			     (char *)fourbytes, sizeof fourbytes, &gsize);
 		break;
 #endif
 	}
@@ -2065,7 +2064,7 @@ handle_dir(char *dir)
 		return;
 	}
 
-	while ((entry = fts_read(fts))) {
+	while (errno = 0, (entry = fts_read(fts))) {
 		switch(entry->fts_info) {
 		case FTS_D:
 		case FTS_DP:
@@ -2080,6 +2079,8 @@ handle_dir(char *dir)
 			handle_file(entry->fts_path, entry->fts_statp);
 		}
 	}
+	if (errno != 0)
+		warn("error with fts_read %s", dir);
 	(void)fts_close(fts);
 }
 #endif
@@ -2199,16 +2200,10 @@ print_list(int fd, off_t out, const char *outfile, time_t ts)
 				maybe_warnx("read of uncompressed size");
 
 			else {
-				usize = buf[4];
-				usize |= (unsigned int)buf[5] << 8;
-				usize |= (unsigned int)buf[6] << 16;
-				usize |= (unsigned int)buf[7] << 24;
+				usize = le32dec(&buf[4]);
 				in = (off_t)usize;
 #ifndef SMALL
-				crc = buf[0];
-				crc |= (unsigned int)buf[1] << 8;
-				crc |= (unsigned int)buf[2] << 16;
-				crc |= (unsigned int)buf[3] << 24;
+				crc = le32dec(&buf[0]);
 #endif
 			}
 		}
